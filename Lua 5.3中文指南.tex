@@ -1,0 +1,1434 @@
+\documentclass{ctexart}
+\usepackage{listings}
+\title{Lua 5.3中文指南}
+\author{翻译:fangcun}
+\begin{document}
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+\section{概述}
+
+\textbf{Lua}是一个强大、高效、轻量的嵌入式脚本语言。它不仅支持过程化、面向对象、函数式和数据驱动的编程方式，还拥有强大的数据描述能力。
+
+\textbf{Lua}不仅语法简单，还拥有基于\textbf{关联数组}和\textbf{可扩展语义}的强大数据描述能力。\textbf{Lua}是动态类型的，它对代码的执行
+是依靠一个基于寄存器的虚拟机执行编译器生成的字节码来完成的。
+它还拥有增量内存垃圾自动回收的能力。这些能力使\textbf{Lua}成为
+\textbf{配置文件}、\textbf{脚本语言}和\textbf{快速原型开发}的
+理想选择。
+
+\textbf{Lua}是以\emph{clean C}\footnote{标准C和C++的共同部分。
+}的方式实现的。\textbf{Lua}发布版包含一个叫做\emph{lua}的程序，
+它可以以交互式或批处理的方式处理\textbf{Lua代码}。
+\textbf{Lua}的设计倾向于嵌入到其它程序中去，为它们提供扩展的能力。
+但将\textbf{Lua}独立使用也非常不错。
+
+作为一个提供扩展能力的语言，\textbf{Lua}没有\emph{main}函数的概念：
+\textbf{Lua}通常被嵌入到其它程序，假设这个被嵌入的程序是\emph{host}。
+那么，\emph{host}程序就可以执行\textbf{Lua}代码，读写\textbf{Lua}变量，
+注册可以被\textbf{Lua}代码调用的\textbf{C函数}。
+这种和\textbf{C语言}交互的能力使得\textbf{Lua}具有广泛的应用领域。
+
+\textbf{Lua}是一个自由软件，它不提供任何担保。关于它的实现描述可以在
+\textbf{www.lua.org}找到。
+
+像其它参考手册一样，这份文档是比较枯燥的。
+关于\textbf{Lua}
+在设计上的讨论可以在\textbf{Lua}网站上找到。
+对于使用\textbf{Lua}进行编程可以参考\emph{Roberto}的
+\emph{Programming in Lua}。
+
+\section{基础概念}
+
+本章节描述了\textbf{Lua}语言的基础概念。 
+
+\subsection{值和类型}
+
+\textbf{Lua}是动态类型语言。它的变量没有类型的概念，而值有类型。
+
+在\textbf{Lua}中所有不同类型的值都是一样的。它们都可以被保存在
+变量中，被作为参数传递函数，被函数返回作为结果。
+
+在\textbf{Lua}中有8种基本类型：\emph{nil}，\emph{boolean}，
+\emph{number}，\emph{string}，\emph{function}，\emph{userdata}，
+\emph{thread}和\emph{table}。\emph{nil}类型只有一个值：\textbf{nil}，
+它通常用来表示什么都没有。\emph{boolean}有两个值：\textbf{false}和
+\textbf{true}。\textbf{nil}和\textbf{false}使条件的结果为假，
+其它值使条件的结果为真。\emph{number}表示整数和浮点数。\emph{string}
+表示不可变的字节序列。\textbf{Lua}的\emph{string}可以包含任何8位的数据，包括
+\emph{$\backslash$0}。此外，\textbf{Lua}是编码无关的。
+
+\emph{number}类型有两种内部表示方式，一种叫做\emph{integer}，另一种叫做
+\emph{float}。对于每种类型何时使用具有明确的规则\textbf{章节3.4.3}。
+标准的\textbf{Lua}使用\textbf{64位整型}和\textbf{双精度浮点数}。
+我们可以通过\textbf{LUA\_32BITS宏}来编译生成\textbf{32位}的\textbf{Lua}
+\footnote{\textbf{LUA\_32BITS宏}位于\emph{luaconf.h}文件中。}。
+
+\textbf{Lua}可以调用用\textbf{Lua}和\textbf{C语言}编写的代码(章节3.4.10)。
+并且它们都被视为\emph{function}类型。
+
+\emph{userdata}类型提供了\textbf{C语言}数据存储在\textbf{Lua}变量的方法。
+\emph{userdata}的值是一个\textbf{数据内存块}。
+有两种类型的\emph{userdata}：\emph{full userdata}和\emph{light userdata}。
+\emph{full userdata}是一个被\textbf{Lua}管理的数据内存块对象。
+\emph{light userdata}则是一个\textbf{C语言}指针。
+在\textbf{Lua}中\emph{userdata}除了\textbf{赋值}和\textbf{判等}操作外，
+没有其它预定义的运算。
+通过\textbf{元表}，我们可以定义\emph{userdata}的运算（章节2.4）。
+为了保证\textbf{宿主程序}数据的完整性，我们只能通过\textbf{C API}创建和修改\emph{userdata}类型的值。
+
+\emph{thread}类型用来表示独立的textbf{线程}（章节2.6）。
+\textbf{Lua}的线程并不是基于操作系统。在所有操作系统上，都可以使用\textbf{Lua}
+的\textbf{协程}。
+
+\emph{table}类型被用来实现\textbf{关联数组}。
+它可以使用除了\textbf{nul}和\textbf{NaN}\footnote{NaN用来表示未定义或不可表示的
+数据，比如$0/0$。}的所有值作为\emph{key}查询数据。
+\emph{table}可以存放除了\textbf{nil}外的所有类型的值。
+\emph{key}对应\textbf{nil}值被认为这个\emph{key}在\emph{table}中不存在。
+也就是说如果一个\emph{key}在\emph{table}中\textbf{存在}，它对应的值一定不是
+\textbf{nil}。
+
+\emph{table}在\textbf{Lua}中扮演这极为重要的角色，它可以用来表示数组，
+列表，记录，图，树等等。
+在\textbf{Lua}中有多种不同的方法来创建\emph{table}（章节3.4.9）。
+
+两个索引等价的判断依据是它们二进制表示是否相同。
+$a[i]$和$a[j]$在$i$和$j$的二进制表示相同的情况下表示同一表元素。
+特别的，拥有整数数值的浮点数和相应的整数等价\footnote{比如$1.0==1$。}。
+为了避免歧义，任何浮点数具有整数值在被作为\emph{key}都会先被转换为整型表示。
+比如，$a[2.0]=true$，实际上在表中插入了一个\emph{key}为2的元素
+\footnote{需要注意2和"2"是不同的\emph{key}。}。
+
+\emph{table}、\emph{function}、\emph{thread}和
+\emph{(full) userdata)}的值都是对象。
+变量仅仅存放了它们的\textbf{引用}，而不是实际存放它们本身。
+所以在对这些值类型进行赋值，参数传递，函数返回时并没有进行对数据本身的复制。
+
+\textbf{Lua}的库函数\emph{type}可以获取一个值的类型的字符串描述（章节6.1）。
+
+\subsection{环境和全局环境}
+
+就像我们在章节3.2和章节3.3.3讨论的，标识符$var$被解释为$\_ENV.var$。
+每个程序块都被编译到一个叫做$\_ENV$的外部局部变量作用域下。
+因此$\_ENV$在一个程序块中不能作为标识符来使用。
+
+尽管$\_ENV$是一个外部变量，但我们仍然可以用这个标识符定义变量和参数。
+新定义的变量和参数作用域规则符合章节3.5。
+
+任何被\emph{\_ENV}作为值的\emph{table}被叫做\textbf{环境}。
+
+\textbf{Lua}会维护一个\textbf{全局环境}。
+它被保持在\textbf{C注册表}中的一个特殊索引中（章节4.5）。
+全局变量$\_G$使用这个值进行初始化\footnote{\_G并没有在内部使用。}。
+
+当\textbf{Lua}载入程序块时，它的$\_ENV$上值缺省是全局环境
+\footnote{参考\emph{load}函数}。也就是说，缺省情况下，标识符是在
+全局环境下的\footnote{所以这些标识符也被叫做全局变量。}。
+此外，所有标注库也被装载在全局环境下，并且一些函数依靠这个环境运作。
+我们可以使用\emph{load}或\emph{loadfile}使用不同环境载入程序块
+\footnote{使用C语言，我们必须先载入程序块，然后改变它的第一个上值。}。
+
+
+\subsection{错误处理}
+
+\textbf{Lua}作为嵌入式脚本语言，通常被宿主程序通过调用\textbf{Lua}库函数来启动执行\textbf{Lua}代码\footnote{如果独立使用Lua，那么lua就是这个宿主程序。}。
+当有编译错误和运行错误发生时，返回错误信息给宿主程序。
+
+\textbf{Lua}代码可以通过调用\emph{error}函数来显式地产生
+错误。如果需要在\textbf{Lua}中捕捉错误，可以在\emph{protected模式}下
+调用\emph{pcall}或\emph{xpcall}传递进行错误处理的函数。
+
+当错误产生时会生成一个\emph{error}对象，这个对象包含了错误的一些信息。
+\textbf{Lua}本身产生的错误生成的\emph{error}对象是一个字符串，但具体的
+\textbf{Lua}程序可能使用任意值作为\emph{error}对象。\emph{error}对象会被向上传递
+直到被\textbf{Lua}程序或宿主程序处理。
+
+可以通过调用\emph{xpcall}或\emph{lua\_pcall}来指定一个\textbf{错误处理函数}。
+当错误产生时，\emph{error}对象被作为参数传递给该函数，该函数被调用，结束后
+返回新的\emph{error}对象。\textbf{错误处理函数}在栈帧未解开时就被调用，
+我们可以通过追踪调用栈获得更多的错误信息。
+\textbf{错误处理函数}内部产生的错误消息也会调用这个
+\textbf{错误处理函数}，当长时间陷入这样的循环，\textbf{Lua}会打破循环，
+然后返回一个消息\footnote{错误处理函数只有在发生运行时错误才被调用。
+它不会在内存分配和\emph{finalizer}发生错误时调用。}。
+
+\subsection{元表和元方法}
+
+\textbf{Lua}允许任意值有一个\textbf{元表}。
+\textbf{元表}是一个普通的\textbf{Lua}表。
+它存放了针对这个值在特定情况下所进行的操作入口。
+我们可以通过改变\textbf{元表}中的特定元素，改变附加在这个值上的一些操作。
+比如，当一个非数字的值被作为加号的操作数时，\textbf{Lua}会检查这个值
+\textbf{元表}中的\emph{\_\_add}元素。找到后，\textbf{Lua}调用
+这个函数执行加法操作。
+
+在\textbf{元表}中以\textbf{双下划线}开始的字符串类型的\emph{key}
+对应的值叫做\textbf{元方法}。在前面的例子中，\emph{\_\_add}对应的
+值就是具体执行加法操作的函数。
+
+可以通过调用\emph{getmetatable}函数查询\textbf{元表}的数据。
+\textbf{Lua}使用原始数据查询\textbf{元方法}。下面的代码显示了这一
+过程：
+
+\lstset{language=C}
+\begin{lstlisting}
+	rawget(getmetatable(o) or {},"__ev")
+\end{lstlisting}
+
+可以通过\emph{setmetatable}函数替换\emph{table}的\textbf{元表}。
+但不可以使用\textbf{Lua}代码替换其它值类型的\textbf{元表}
+\footnote{除了使用调试库（章节6.10）。}。可以通过\textbf{C API}实现
+对其它值类型元表的替换。
+
+每个\emph{table}和\emph{userdata}可以拥有独立的\textbf{元表}
+\footnote{尽管多个\emph{table}和\emph{userdata}可能共享一个
+\textbf{元表}}。其它值类型每个类型共享一个\textbf{元表}。
+简单说，\emph{number}类型值共享一个\textbf{元表}，
+\emph{string}类型值共享一个\textbf{元表}，等等。
+缺省情况下，除了\emph{string}值外，其它值是没有\textbf{元表}的
+（章节6.4）。
+
+\textbf{元表}定义了附加在对象上的算术运算，位运算，比较运算，
+连接运算，长度运算，调用以及索引方法。
+\textbf{元表}可以为\emph{userdata}或\emph{table}指定一个
+在对象被垃圾回收前调用的函数（章节2.5）。
+
+对于一元运算（否定，求长度，和按位取反），\textbf{元方法}
+提供了一个伪的第二操作数，它的值等于第一操作数。这个设计是为了简化
+\textbf{Lua}的实现，在未来的版本可能会删除，因此应该不要使用
+这个伪的第二操作数。
+
+下面给出了\textbf{元表}元素的详细列表。每个操作符通过\emph{key}来区分。
+
+\begin{itemize}
+\item \_\_add:(+)加法操作。
+
+\item \_\_sub:(-)减法操作。
+
+\item \_\_mul:(*)乘法操作。
+
+\item \_\_div:(/)除法操作。
+
+\item \_\_mod:(\%)模操作。
+
+\item \_\_pow:( \^ \  )指数操作。
+
+\item \_\_unm:(-)求相反数操作。
+
+\item \_\_idiv:(//)
+
+\item \_\_band:(\&)按位与操作。
+
+\item \_\_bor:(|)按位或操作。
+
+\item \_\_bxor:( \~\ )按位异或操作。
+
+\item \_\_bnot:( \~\ )按位取反操作。
+
+\item \_\_shl:(<<)按位左移操作。
+
+\item \_\_shr:(>>)按位右移操作。
+
+\item \_\_concat:(..)连接操作。
+
+\item \_\_len:(\#)求长度操作。
+
+\item \_\_eq:(==)判等操作。
+
+\item \_\_lt:(<)判小于操作。
+
+\item \_\_le:(<=)判小于等于操作。
+
+\item \_\_index:([\emph{key}])索引操作。
+
+\item \_\_newindex:
+
+\item \_\_call:\emph{func(argc)}。
+
+\end{itemize}
+
+
+\subsection{垃圾回收}
+
+\textbf{Lua}自动进行内存管理。我们不需要关心内存的申请和释放。
+当一个对象不能被\textbf{Lua}代码访问到时，它就可能被垃圾回收器释放掉。
+\emph{string}，\emph{table},\emph{userdata},\emph{function},
+\emph{thread}，内部结构等等被\textbf{Lua}使用的内存都被自动管理。
+
+\textbf{Lua}使用增量标记扫描的方式回收内存。
+它通过两个数字控制垃圾回收的周期：\emph{garbage-collector pause}
+和\emph{garbage-collector step multiplier}。
+它们都使用百分数作为作为单位\footnote{100相当与1。}。
+
+\emph{garbage-collector pause}控制等待多久之后开始新一轮的
+垃圾回收。它的数字越大，垃圾回收越不激进。它的值小于100将不会
+等待就开始新一轮的回收。它的值等于200意味着只有内存使用达到上一次回收后的
+两倍时开始新一轮的垃圾回收。
+
+\emph{garbage-collector step multiplier}控制垃圾回收相对于
+内存分配的速度。它的值越大，垃圾回收越激进，但同时增加了步伐的增量。
+不应该给它小于100的值，因为这样会造成回收过慢以至于无法结束一个回收
+周期。它的缺省值是200,意味着垃圾回收的速度是
+内存分配的两倍。
+
+如果把\emph{garbage-collector step multiplier}设置为
+一个很大的值\footnote{超过程序最大使用内存百分之十。}，回收器
+的表现就像\emph{stop-the-world}回收器一样。
+如果再设置\emph{garbage-collector pause}为200,回收器表现的
+就像旧版本的\textbf{Lua}一样，当\textbf{Lua}使用双倍内存时进行
+垃圾回收。
+
+可以通过\textbf{C API}函数\emph{lua\_gc}或使用
+\textbf{Lua}代码调用\emph{collectgarbage}函数设置这些数字。
+我们也可以使用函数直接控制回收\footnote{比如暂停和重启回收器。}。
+
+\subsubsection{垃圾回收元方法}
+
+我们可以通过\textbf{Lua}代码设置\emph{table}的垃圾回收
+\textbf{元方法}。对于\emph{userdata}可以通过\textbf{C API}来设置
+（章节2.4）。这些元方法也被叫做\emph{finalizer}。
+\emph{finalizer}使\textbf{Lua}的垃圾回收器拥有和外部资源协调的能力
+\footnote{比如关闭文件，网络和数据库连接。}。
+
+为了使一个对象再被回收时调用\emph{finalizer}，我们需要设置它的
+\textbf{元表}时同时设置\emph{\_\_gc}域。如果没有同时设置这个域，
+或是之后在\textbf{元表}中创建这个域，对象的\emph{finalizer}都不会被
+执行。
+
+当一个被标记的对象变成垃圾，它并不会立即被回收。
+而是被\textbf{Lua}放入一个表中。\textbf{Lua}完成所有收集操作后，
+会遍历这个表，检查每个对象的\emph{\_\_gc}元方法。然后将这个对象作为
+这个元方法的参数调用\emph{\_\_gc}元方法。
+
+在每轮回收周期结尾，被标记的对象以相反的顺序调用\emph{finalizer}。
+\emph{finalizer}执行可能在正常代码执行的任一点发生。
+
+被收集的对象可能需要被\emph{finalizer}使用，\textbf{Lua}可以恢复这些
+对象。通常，这种恢复是暂时的，在下一周期对象就会被释放。
+但是，如果\emph{finalizer}把对象存放在一个全局可以访问的地方，这
+种恢复就是永久的。
+此外，如果一个\emph{finalizer}标记一个正在结束的对象再次终结，
+它的\emph{finalizer}会在下一周期再次被调用，但这时对象本身已经不
+可以被访问到。任何情况下，不可访问且未被标记的对象的内存
+在一个回收周期被释放。
+
+当我们关闭状态时\footnote{\emph{lua\_close}。}，\textbf{Lua}
+就会按照相反的顺序调用所有标记析构的对象的\emph{finalizer}。
+在这时，任何\emph{finalizer}标记回收对象都是无效的。
+
+\subsubsection{弱表}
+
+\textbf{弱表}是指表中元素是弱引用的\emph{table}。
+弱引用被垃圾回收器忽略。
+如果一个对象只被弱引用，垃圾回收器就会回收它。
+
+\textbf{弱表}可以包含弱引用的\emph{key}，弱引用的值或者两者都有。
+值是弱引用的\textbf{表}允许回收它的值，但不能回收它的\emph{key}。
+\emph{key}和值都是弱引用的\textbf{表}允许回收它的\emph{key}和
+值。在任何情况下，\emph{key}和值其中有一个被回收，整个键对就会被
+表中移除。表的\emph{\_\_mode}域控制了表的键值是否是弱引用的，
+如果\emph{\_\_mode}域包含了$k$字符，\emph{key}是弱引用的。
+如果\emph{\_\_mode}域包含了$v$字符，\textbf{值}是弱引用的。
+
+如果一个\emph{table}具有弱引用的\emph{key}和强引用的\textbf{值}，
+那么它就是\textbf{蜉蝣表}，它的值只有在\emph{key}可以被访问时才能被
+访问到。特别的，如果一个\emph{key}的唯一引用是通过它的值
+，这个键对会被表移除。
+
+表的强弱信息的改变在下一个回收周期生效。所以，尽管我们把表改为强引用模式，
+但是\textbf{Lua}在改变生效前仍会回收表中的元素。
+
+只有显式构建的对象才会被弱表移除。数字和轻量的\textbf{C}函数并不被
+垃圾回收管理，它们自然也就不会被弱表移除
+\footnote{除非它们的值被回收}。
+字符串接受垃圾回收器的管理，但它没有显式的构造，所以
+也不会被弱表移除。
+
+弱表中的恢复对象有一些特殊的行为。它们在运行自己的\emph{finalizer}
+前弱值会被删除，但只有在运行\emph{finalizer}的下一回收周期，才删除
+\emph{key}。这样\emph{finalizer}就可以通过弱表访问对象关联的信息。
+
+一个弱表在一个回收周期是一个恢复对象，它可能需要在下一周期才能被清除。
+
+\subsection{协程}
+
+\textbf{Lua}支持\textbf{协程},也叫做\textbf{协作多线程}。
+\textbf{协程}在\textbf{Lua}中代表独立的线程。
+和操作系统的线程不同，\textbf{协程}只有在显式调用\emph{yield}函数后才会挂起执行。
+
+可以通过调用\emph{coroutine.create}来创建一个协程。
+它的参数是协程要执行的函数。\emph{coroutine.create}创建一个协程，
+被返回这个协程的句柄，但它不会\textbf{}开始\textbf{协程}的执行。
+
+我们可以通过调用\emph{coroutine.resume}来执行协程。当第一次
+调用\emph{coroutine.resume}函数，协程开始运行它的执行函数。
+\emph{coroutine.resume}函数的可变参数被传递给协程的执行函数
+作为参数。\textbf{协程}开始执行之后，
+遇到\emph{yield}或函数结束才会终止。
+
+\textbf{协程}有两种方式终止运行，一种是从它的执行函数正常返回。
+另一种出现异常错误。在正常返回的情况下，\emph{coroutine.resume}函数
+会返回\textbf{true}，加上其它被协程函数返回的值。
+在出错的情况下，\emph{coroutine.resume}函数返回\textbf{false}
+，加上一个错误对象。
+
+可以通过调用\emph{coroutine.yield}函数让出\textbf{协程}的执行。
+当一个\textbf{协程}被让出，\emph{coroutine.resume}函数会
+立即返回，即使这个\emph{yield}函数是在执行函数内的一个嵌套函数
+中调用的。调用\emph{yield}函数让出协程，
+\emph{coroutine.resume}同样返回\textbf{true}，加上
+传递给\emph{coroutine.yield}的值。
+下一次使用\emph{coroutine.resume}唤醒同一个协程时，这个协程会
+从让出的地方开始执行。调用\emph{coroutine.yield}返回的任何多余参数
+都会被传递给\emph{coroutine.resume}。
+
+\emph{coroutine.wrap}函数被用来创建一个\textbf{协程}，但它
+不返回协程的句柄，而是返回一个函数，当这个函数被调用，协程就会被执行。
+传递给这个函数的参数就像传递给\emph{coroutine.resume}函数的
+参数一样。\emph{coroutine.wrap}函数返回\emph{coroutine.resume}
+函数除了第一个布尔错误代码外的所有返回值。
+\emph{coroutine.wrap}函数不会捕捉错误，调用者需要
+自己处理错误。
+
+下面的代码演示了协程如何工作：
+
+\lstset{language=C}
+\begin{lstlisting}
+	function foo (a)
+		print("foo", a)
+		return coroutine.yield(2*a)
+	end
+
+	co = coroutine.create(function (a,b)
+			print("co-body", a, b)
+			local r = foo(a+1)
+			print("co-body", r)
+			local r, s = coroutine.yield(
+					a+b,a-b)
+			print("co-body", r, s)
+			return b, "end"
+	end)
+     
+	print("main", coroutine.resume(co, 1, 10))
+	print("main", coroutine.resume(co, "r"))
+	print("main", coroutine.resume(co, "x", "y"))
+	print("main", coroutine.resume(co, "x", "y"))
+\end{lstlisting}
+
+运行上面的代码，会产生下面这些输出：
+
+\lstset{language=C}
+\begin{lstlisting}
+	co-body 1       10
+	foo     2
+	main    true    4
+	co-body r
+	main    true    11      -9
+	co-body x       y
+	main    true    10      end
+	main    false   cannot resume dead coroutine
+\end{lstlisting}
+
+我们也可以通过\textbf{C API}创建和处理协程，具体参考
+\emph{lua\_newthread}，\emph{lua\_resume}和\emph{lua\_yield}
+函数。
+
+\section{Lua语言}
+
+本章描述了\textbf{Lua语言}的词法，语法和语义。
+
+这里使用巴科斯范式描述\textbf{Lua语言}的构造。
+
+\subsection{词法}
+
+\textbf{Lua}对于代码格式要求很自由。它忽略标记之间的空白符
+(包括换行)和注释，仅仅将它们作为标记之间的分割。
+
+在\textbf{Lua}中，任何不以数字开始的字符串可以作为标识符。标识符可以用来给
+变量，表域和标签命名。
+
+下面的关键字被\textbf{Lua}保留，不能作为标识符：
+\emph{
+and		break	do			else		elseif		end
+false	for		function	goto		if			in
+local	nil		not			or			repeat		return
+then	true	until		while
+}
+
+\textbf{Lua}是一个大小写敏感的语言：\emph{and}是一个
+保留字，但\emph{And}和\emph{AND}不是。
+作为约定，我们应该避免使用以一个下划线开始后接一个或多个大写字母的标识符
+\footnote{比如\textbf{\_VERSION}}。
+
+下面的符号有其特殊的意义：
+
+\lstset{language=C}
+\begin{lstlisting}
+	+     -     *     /     %     ^     #
+	&     ~     |     <<    >>    //
+	==    ~=    <=    >=    <     >     =
+	(     )     {     }     [     ]     ::
+	;     :     ,     .     ..    ...
+\end{lstlisting}
+
+可以使用单引号或双引号来定义短字符串字面量。
+字面量可以包含下面这些\textbf{C语言}转义字符：
+
+\lstset{language=C}
+\begin{lstlisting}
+	'\a' (响铃)
+	'\b' (退个退格)
+	'\f' (换页)
+	'\n' (换行)
+	'\r' (回车)
+	'\t' (水平制表)
+	'\v' (垂直制表)
+	'\\' (反斜杠)
+	'\"' (双引号)
+	'\'' (单引号)
+\end{lstlisting}
+
+反斜杠后跟换行会在字符串中插入新行。
+$\backslash z$可以跳过紧接着的空白符，包括换行。
+可以利用$\backslash z$来更方便的组织字符串。
+短字符串字面量不能包括未转移的换行和非法转义字符。
+
+我们可以精确地指定字符串的内容，甚至可以像字符串中插入ASCII为0的字符．
+要进行这样的操作只需要使用$\backslash xXX$转义即可，这里的$XX$使用两个十六进制
+数字替换。还可以使用$\\ddd$的形式，这里的$ddd$是三个十进制的数字。
+
+可以使用$\backslash u\{XXX\}$插入UTF-8编码的字符到字符串，$XXX$是字符代码的十六进制表示。
+
+字符串字面量也可以使用长括号的格式。我们定义$n$级开长括号是指
+一个[括号后跟$n$个$=$，然后跟着另一个[括号。$0$级开长括号写作
+[[，$1$级开长括号写作[=[，以此类推。闭长括号的定义与之类似。
+举个例子，$4$级闭长括号写作]====]。
+长字符串字面量以一个级别的开长括号开始，然后结束于同级的闭长括号。
+开闭长括号之间可以包含任何文本，包括换行。
+
+为了方便，[后紧跟新行，这个新行不会被包含在字符串中。
+举个例子，在一个使用\textbf{ASCII}编码的系统中，
+下面的$a$变量被赋予完全相同的字符串常量：
+
+\lstset{language=C}
+\begin{lstlisting}
+	a = 'alo\n123"'
+	a = "alo\n123\""
+	a = '\97lo\10\04923"'
+	a = [[alo
+	123"]]
+	a = [==[
+	alo
+	123"]==]
+\end{lstlisting}
+
+任何在字符串字面量中的字符如果不受上面规则的影响，它们代表自己。
+\textbf{Lua}使用文本模式打开文件。
+系统的文件函数可能会对一些控制字符进行处理。
+所以，对于一个非文本数据最好使用显式的转义表示。
+
+数字常量可以用指数形式表示。也可以使用十六进制表示。
+数字常量带有小数点或幂被认为是一个浮点数。
+否则，如果它的值符合整型，它就是一个整型数。
+下面是合法的整型数的例子：
+
+\lstset{language=C}
+\begin{lstlisting}
+	3   345   0xff   0xBEBADA
+\end{lstlisting}
+
+下面是合法的浮点数的例子：
+
+\lstset{language=C}
+\begin{lstlisting}
+	3.0	3.1416	314.16e-2
+	0.31416E1	34e1
+	0x0.1E	0xA23p-4
+	0X1.921FB54442D18P+1
+\end{lstlisting}
+
+\textbf{Lua}的注释以$--$开始。
+如果$--$后没有紧跟，这个注释就是一个行注释。
+否则，它是一个长注释，直到括号关闭，注释才结束。
+长注释通常被用来临时取消代码。
+
+\subsection{变量}
+
+\textbf{变量}是存放\textbf{值}的地方。
+\textbf{Lua}有三种类型的变量：全局变量，局部变量和表域。
+
+可以用\textbf{标识符}表示一个全局变量或局部变量。
+
+\lstset{language=C}
+\begin{lstlisting}
+	var::=Name
+\end{lstlisting}
+
+默认情况下变量被假定为全局变量，除非显式地使用\emph{local}定义。
+局部变量的作用范围由语义限定。
+
+在变量未被赋值之前，它的值为\textbf{nil}。
+
+中括号被用来索引查询\emph{table}：
+
+\lstset{language=C}
+\begin{lstlisting}
+	var::=prefixexp'['exp']'
+\end{lstlisting}
+
+访问表域的行为可以通过\textbf{元表}更改。
+$t[i]$等价于调用\emph{gettable\_event(t,i)}函数
+\footnote{章节2.4有关于\emph{gettable\_event}函数的完整描述。
+\emph{gettable\_event}函数并没有被定义，使用它仅仅是出于解释的目的。}。
+
+\emph{var.name}等价于$var["name"]$：
+
+\lstset{language=C}
+\begin{lstlisting}
+	var ::= prefixexp ‘.’ Name
+\end{lstlisting}
+
+对于全局变量$x$的访问等价于$\_ENV.x$。
+根据程序块被编译的方式，$\_ENV$不能作为一个全局标识符(章节2.2)。
+
+\subsection{语句}
+
+\textbf{Lua}支持几乎所有的常用语句。形式类似于Pascal和C。
+包括赋值，控制，函数调用和变量定义。
+
+\subsubsection{语句块}
+
+一个\textbf{语句块}是指一段连续的语句：
+\lstset{language=C}
+\begin{lstlisting}
+	block ::= {stat}
+\end{lstlisting}
+
+\textbf{Lua}支持空语句，可以用分号分割语句：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= ‘;’
+\end{lstlisting}
+
+函数调用和赋值可以以括号开始。
+这可能会造成语法的歧义。
+考虑下面的代码：
+
+\lstset{language=C}
+\begin{lstlisting}
+	a = b + c
+	(print or io.write)('done')
+\end{lstlisting}
+
+在语法上可以看作以下两种形式。
+
+\lstset{language=C}
+\begin{lstlisting}
+	a = b + c(print or io.write)('done') 
+	a = b + c; (print or io.write)('done')
+\end{lstlisting}
+
+目前，\textbf{Lua}目前将其识别为第一种形式。、
+为了避免语法的二义性，最好是使用分号来分割语句。
+
+\lstset{language=C}
+\begin{lstlisting}
+	;(print or io.write)('done')
+\end{lstlisting}
+
+一个语句块也是一条语句，语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= do block end
+\end{lstlisting}
+
+显式语句块可以用来控制变量的作用域。
+除此之外，显式语句块也被用来在语句块的内部使用\emph{return}返回结果。
+
+\subsubsection{程序块}
+
+\textbf{Lua}的编译单位是\textbf{程序块}。语法构造上，
+程序块就是一个语句块。
+
+\lstset{language=C}
+\begin{lstlisting}
+	chunk ::= block
+\end{lstlisting}
+
+\textbf{Lua}将\textbf{程序块}作为一个带有可变参数的匿名函数进行处理。
+所以，程序块可以有自己的局部变量，接收参数，返回数据。
+
+程序块可以被存放在文件中或者宿主程序的一个字符串中。
+\textbf{Lua}把程序块编译成虚拟机指令代码，然后运行。
+
+程序块也可以提前被编译为二进制的形式。
+关于这方面的内容可以了解\emph{luac}程序和\emph{string.dump}函数。
+\textbf{Lua}可以自动判断程序块的形式进行执行（参看\emph{load}函数）。
+
+\subsubsection{赋值}
+
+\textbf{Lua}允许多重赋值。也就是等号左边的列表里的变量
+和等号右边列表中的表达式一对一对应赋值。
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= varlist ‘=’ explist
+	varlist ::= var {‘,’ var}
+	explist ::= exp {‘,’ exp}
+\end{lstlisting}
+
+\textbf{表达式}在章节3.4中被讨论。
+
+\subsubsection{控制结构}
+
+\emph{if},\emph{while},\emph{repeat}有相似的语法形式：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= while exp do block end
+	stat ::= repeat block until exp
+	stat ::= if exp then block
+	{elseif exp then block} [else block] end
+\end{lstlisting}
+
+\textbf{Lua}也有\emph{for}语句（章节3.3.5）。
+
+控制结构允许任何值作为条件。\textbf{false}和\textbf{nil}被认为是
+\textbf{假}，其余情况被认为是\textbf{真}\footnote{特别注意，数字$0$和
+空字符串也被认为是\textbf{真}。}。
+
+\emph{repeat until}使用的循环条件可以是它包含的语句块内部定义的
+\textbf{局部变量}。
+
+\emph{goto}语句用来跳转到一个标签执行。
+标签的语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= goto Name
+	stat ::= label
+	label ::= ‘::’ Name ‘::’
+\end{lstlisting}
+
+标签在定义它的整个语句块都是可见的，但如果语句块内嵌的语句块或函数
+定义了同名标签，那么它就会被覆盖。
+\emph{goto}可以跳到任何一个不进入局部变量作用域的可见标签。
+
+标签和空语句被叫做\emph{void statements}，它们不执行任何动作。
+
+\emph{break}语句被用来终止\emph{while}，\emph{repeat}
+和\emph{loop}循环。
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= break
+\end{lstlisting}
+
+\emph{break}仅仅终止包含它的那一层循环。
+
+\emph{return}语句用来返回函数或程序块
+\footnote{程序块本身是一个匿名函数。}的结果。
+函数可以返回一个以上的返回值。
+\emph{return}语句的形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= return [explist] [‘;’]
+\end{lstlisting}
+
+\emph{return}语句只能是语句块的最后一条语句。
+如果确实需要在语句块中间使用，可以显式地使用一个内部语句块包括
+\emph{return}，使它变成语句块的最后一条语句。就像\emph{do return end}这样。
+
+\subsubsection{For语句}
+
+\emph{for}语句有两种形式：基于数字和基于种类。
+
+基于数字的\emph{for}循环语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= for Name ‘=’ exp ‘,’
+	exp [‘,’ exp] do block end
+\end{lstlisting}
+
+我们以下面这条语句对基于数字的\emph{for}循环进行解释：
+
+\lstset{language=C}
+\begin{lstlisting}
+	for v = e1, e2, e3 do block end
+\end{lstlisting}
+
+它等价于下面的代码：
+
+\lstset{language=C}
+\begin{lstlisting}
+	do
+		local var, limit, step = tonumber(e1),
+		tonumber(e2), tonumber(e3)
+		if not (var and limit and step) then error() end
+		var = var - step
+		while true do
+			var = var + step
+			if (step >= 0 and var > limit)
+			or (step < 0 and var < limit) then
+				break
+			end
+			local v = var
+			block
+		end
+	end
+\end{lstlisting}
+
+需要注意下面这些细节：
+
+\begin{itemize}
+	\item 三个控制表达式只会在循环开始前被计算一次，并且它们必须返回数字作为结果。
+	\item \emph{var}，\emph{limit}和\emph{step}实际并不存在，这里只是
+	出于解释的目的，使用它们。
+	\item 如果不存在第三个表达式，step会默认为1。
+	\item 可以使用\emph{break}和\emph{goto}语句跳出循环。
+	\item 循环变量\emph{v}的作用域是循环体，如果需要在
+	循环后使用，应该在退出循环前将它赋值给其它变量。
+\end{itemize}
+
+基于种类的\emph{for}语句通过叫做\emph{迭代器}的函数工作。
+每一次迭代，迭代器产生一个新的值，当这个新值为\textbf{nil}时，迭代停止。
+这种形式\emph{for}循环语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= for namelist in explist
+		do block end
+	namelist ::= Name {‘,’ Name}
+\end{lstlisting}
+
+我们以下面的例子解释：
+
+\lstset{language=C}
+\begin{lstlisting}
+	for var_1, ···, var_n in explist
+		do block end
+\end{lstlisting}
+
+它等价于下面的代码：
+
+\lstset{language=C}
+\begin{lstlisting}
+	do
+		local f, s, var = explist
+		while true do
+			local var_1, ···, var_n = f(s, var)
+			if var_1 == nil then break end
+			var = var_1
+			block
+		end
+	end
+\end{lstlisting}
+
+需要注意下面这些细节：
+
+\begin{itemize}
+	\item \emph{explist}仅在循环开始前计算一次，它们的结果是一个
+	迭代函数，一个状态和第一个迭代器变量的初始值。
+	\item 变量\emph{f}，\emph{s}和\emph{var}实际并不存在，
+	使用它们仅仅是出于解释的目的。
+	\item 可以使用\emph{break}跳出循环。
+	\item 循环变量\emph{var\_i}的作用域在循环体内，
+	如果我们需要在循环外使用它值，应该在循环结束前把它的值赋给其它变量。
+\end{itemize}
+
+\subsubsection{函数调用作为语句}
+
+函数调用可以作为单一的一条语句，语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= functioncall
+\end{lstlisting}
+
+在这种情况下，函数的返回值被丢弃。函数调用的具体讨论在章节3.4.10。
+
+\subsubsection{局部定义}
+
+局部变量可以在语句块的任何地方定义。局部变量定义的语法
+形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= local namelist [‘=’ explist]
+\end{lstlisting}
+
+如果没有初始化赋值，变量会使用\textbf{nil}进行初始化。
+
+一个程序块也是一个语句块（章节3.3.2），所以局部变量可以定义程序块的任何
+地方。
+
+局部变量的可见性规则在章节3.5讨论。
+
+\subsection{表达式}
+
+\textbf{Lua}中的表达式语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	exp ::= prefixexp
+	exp ::= nil | false | true
+	exp ::= Numeral
+	exp ::= LiteralString
+	exp ::= functiondef
+	exp ::= tableconstructor
+	exp ::= ‘...’
+	exp ::= exp binop exp
+	exp ::= unop exp
+	prefixexp ::= var | functioncall | ‘(’ exp ‘)’
+\end{lstlisting}
+
+\emph{Numeral}和\emph{LiteralString}在章节3.1介绍。
+\emph{var}在章节3.2介绍。
+\emph{functiondef}在章节3.4.11介绍。
+\emph{functioncall}在章节3.4.10介绍。
+\emph{tableconstructor}在章节3.4.9介绍。
+\emph{可变参数表达式}只可以在可变参数函数中使用，具体在章节3.4.11介绍。
+
+二元算术运算符在章节3.4.1介绍，位运算符在章节3.4.2介绍，
+关系运算符在章节3.4.4介绍，逻辑运算符在3.4.5介绍，
+连接运算符在章节3.4.6介绍。一元减在章节3.4.1介绍，
+按位取反符在章节3.4.2介绍，逻辑否定运算符(\textbf{not})在
+章节3.4.5介绍，求长度运算符在章节3.4.7介绍。
+
+函数和可变参数表达式都能返回多个值作为结果。
+只有一条函数调用的语句(章节3.3.6)，返回值会被丢弃。
+表达式作为表达式列表的最后一个元素，表达式的结果不会被调整。
+其它情况，\textbf{Lua}把表达式的结果调整为一个元素\footnote{表达式不返回值
+的话，调整的结果是\textbf{nil}。}。
+
+下面是一些例子：
+
+\lstset{language=C}
+\begin{lstlisting}
+	f()-- adjusted to 0 results
+	g(f(), x)-- f() is adjusted to 1 result
+	g(x, f())-- g gets x plus all results from f()
+	a,b,c = f(), x-- f() is adjusted to 1 result (c gets nil)
+	a,b = ...-- a gets the first vararg parameter, b gets
+	-- the second (both a and b can get nil if there
+	-- is no corresponding vararg parameter)
+     
+	a,b,c = x, f()-- f() is adjusted to 2 results
+	a,b,c = f()-- f() is adjusted to 3 results
+	return f()-- returns all results from f()
+	return ...-- returns all received vararg parameters
+	return x,y,f()-- returns x, y, and all results from f()
+	{f()}-- creates a list with all results from f()
+	{...}-- creates a list with all vararg parameters
+	{f(), nil}-- f() is adjusted to 1 result
+\end{lstlisting}
+
+被括号包围的表达式只返回一个值。
+比如，$(f(x,y,z))$返回一个值，即使$f$函数可能返回多个值也是这样，只返回它的第一
+个值，如果$f$不返回值的话返回\textbf{nil}。
+
+\subsubsection{算术操作符}
+
+\textbf{Lua}支持下面这些算术运算符：
+
+\begin{itemize}
+\item +: 加法
+\item -: 减法
+\item *: 乘法
+\item /: 浮点除法
+\item //: 整型除法
+\item \%: 模运算
+\item \^\ : 指数运算
+\item -: 一元减
+\end{itemize}
+
+除了指数和浮点除法，其余算术运算符按下面的方式工作：
+如果它的两个操作数都是整型，运算的结果也会是整型．
+如果它的两个操作数都是\emph{number}或emph{string}，并且能被转换成
+\emph{number}，它们就会被转换为浮点数，然后遵循浮点数的运算规则进行计算
+\footnote{\textbf{IEEE 754}标准。}，
+计算结果也会是一个浮点数。
+
+指数和浮点除法总是把它们的操作数转换为浮点数然后进行计算，计算结果为
+浮点数。指数运算使用\emph{ISO C}的库函数\emph{pow}进行，所以非整数指数
+也是有效的。
+
+整型除法(//)返回除法的商的部分。
+
+\textbf{模}返回除法的余数部分。
+
+整型的算术运算可能会产生溢出，根据补码的规则，这时得到的结果是经过环绕的。
+
+\subsubsection{位运算符}
+
+\textbf{Lua}支持下面这些位运算操作符：
+
+\begin{itemize}
+\item \&: 按位与
+\item |: 按位或
+\item \~\ : 按位异或
+\item >>: 按位右移
+\item <<: 按位左移
+\item \~\ : 按位取反
+\end{itemize}
+
+所有位操作会把它的操作数转换为整型（章节3.4.3）。运算的结果也是整型。
+
+右移和左移使用0来填充空位。
+
+\subsubsection{强制类型转换}
+
+\textbf{Lua}在需要时会自动进行类型和表示方法的转换。
+使用位运算时，总是把浮点数转换为整型数。
+使用指数运算时，总是把整型数转换为浮点数。
+对于算数运算来说，如果它的两个参数中一个为
+整型数，一个为浮点数，那么整型数会被转换为浮点数，
+这被称为\emph{usual rule}。
+\textbf{C API}也会根据需要转换参数类型。
+字符串连接符可以接受数字作为参数。
+
+当需要\emph{number}时，\textbf{Lua}也会把\emph{string}转换为
+\emph{number}。
+
+整型数转换为浮点数时，如果这个数值有精确的浮点表示，就转为这个精确表示。
+否则的话，转为一个最接近的浮点表示。这种转换不会失败。
+
+浮点数转换为整型数时，如果这个数值有精确的整型表示
+\footnote{浮点数的值为整数，并且在整型可表示的区间里。}，就转为这个
+精确表示，否则，转换失败。
+
+字符串可以根据语义转换为整型数或浮点数。
+
+数字转换为字符串使用非特定的人类可读的格式。
+我们可以使用\emph{string.format}来控制转换数字到字符串。
+
+\subsubsection{关系运算符}
+
+\textbf{Lua}支持下面这些关系运算符：
+
+\begin{itemize}
+\item ==: 判等
+\item \~\ =: 判不等
+\item <: 判小于
+\item >: 判大于
+\item <=: 判小于或等于
+\item >=: 大于或等于
+\end{itemize}
+
+这些运算返回\textbf{false}或\textbf{true}。
+
+\emph{==}运算符首先比较它的两个操作数的类型，如果类型不同就会
+返回\textbf{false}，相同的话，再比较它们的值返回结果。
+需要注意的是\emph{number}的比较是基于数学，而不是二进制。
+
+\emph{table}，\emph{userdata}和\emph{thread}通过引用比较：
+两个对象相同的条件是它们是同一个对象，也就是两个变量引用了同一个对象。
+具有相同引用的闭包是相等的。有任何差别的比包都是不等的。
+
+我们可以通过\emph{eq}元方法修改\textbf{Lua}比\emph{table}和
+\emph{userdata}的方式（章节2.4）。
+
+判等比较不会把字符串转换为数字，反之亦然。
+$"0"==0$的结果是\textbf{false}，
+$t[0]$和$t["0"]$表示表中不同的元素。
+
+\~\ =是==的否定。
+
+比较运算符的工作方式如下。
+如果两个操作数都是\emph{number}，则比较它们的算术大小(忽略它们的
+子类型)。如果两个操作数都是\emph{string}，则根据当前语言环境比较。
+其余情况，\textbf{Lua}会尝试调用操作数的\emph{lt}或
+\emph{le}元方法。
+$a>b$等价于$b<a\ and\ a>=b$等价于$b<=a$。
+
+根据\textbf{IEEE 754标准}，\textbf{NaN}被认为不小于，不大于，不等于
+包括它自己在内的任何值。
+
+\subsubsection{逻辑运算符}
+
+\textbf{Lua}中的逻辑运算符有\emph{and}，\emph{or}和\emph{not}。
+像所有控制结构一样（章节3.3.4），\textbf{false}和\textbf{nil}被认为是
+\textbf{假}，其它都被认为\textbf{真}。
+
+\textbf{not}操作符返回\textbf{false}或\textbf{true}。
+\textbf{and}操作符返回操作数依赖于操作数本身，第一个操作数结果为\textbf{假}
+则返回地一个操作数，否则返回第二个操作数。
+\textbf{or}操作符和\textbf{and}类似，它在第一个操作数为\textbf{真}时，
+返回第一个操作数，否则的话返回第二个操作数。
+\textbf{and}和\textbf{or}都是\textbf{短路}的，当
+可以确定结果时，就不会计算剩余的表达式。
+下面是一些关于逻辑运算符运算结果的例子：
+
+\lstset{language=C}
+\begin{lstlisting}
+	10 or 20            --> 10
+	10 or error()       --> 10
+	nil or "a"          --> "a"
+	nil and 10          --> nil
+	false and error()   --> false
+	false and nil       --> false
+	false or nil        --> nil
+	10 and 20           --> 20
+\end{lstlisting}
+
+\subsubsection{连接符}
+
+在\textbf{Lua}中可以使用..连接字符串。
+如果连接符的两个操作数都是字符串或数字，它们会根据在章节3.4.3中
+描述的规则进行转换。否则的话，\emph{\_\_concat}元方法就会被调用
+（章节2.4）。
+
+\subsubsection{求长度操作符}
+
+\textbf{Lua}的求长度操作符是\#。
+\emph{string}的长度是它的字节数。\footnote{Lua编码无关，所以依据字符
+个数判断长度是会出错的。}
+
+对一个\emph{table}使用\#会返回它的边界。
+\emph{table}的边界是满足下面的条件的自然数：
+
+\lstset{language=C}
+\begin{lstlisting}
+	 (border == 0 or t[border] ~= nil) and t[border + 1] == nil
+\end{lstlisting}
+
+也就是说，\emph{table}的边界是一个后跟\textbf{nil}值的非\textbf{nil}值的
+位置。
+\footnote{如果第一个元素为\textbf{nil}，那么边界为0。}。
+
+可以通过\emph{\_\_len}元方法修改除了\emph{string}外的
+任何类型值的求长度操作（章节2.4）。
+
+\subsubsection{操作符优先级}
+
+\textbf{Lua}中操作符的优先级从低到高的顺序如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	or
+	and
+	< > <= >= ~= ==
+	|
+	~
+	&
+	<< >>
+	..
+	+ -
+	* / // %
+	一元操作符(not # - ~)
+	^
+\end{lstlisting}
+
+可以使用括号指定表达式的优先级。连接符..和指数符 \^ \ 是右结合的。
+所有二进制运算符是左结合的。
+
+\subsubsection{表构造器}
+
+表构造器是创建\emph{table}的表达式。
+每一次构造器被计算，就会产生一个新的\emph{table}。
+构造器可以用来创建空表或是直接指定表的内容来创建表。
+构造器的语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	tableconstructor ::= ‘{’ [fieldlist] ‘}’
+	fieldlist ::= field {fieldsep field} [fieldsep]
+	field ::= ‘[’ exp ‘]’ ‘=’ exp | 
+			Name ‘=’ exp | exp
+	fieldsep ::= ‘,’ | ‘;’
+\end{lstlisting}
+
+形式$[exp1]=exp2$向表中添加一个\emph{key}为$exp1$，值为$exp2$的
+键对。形式$name=exp$等价于$["name"]=exp$。
+形式$exp$等价于$[i]=exp$，这里的i是从1开始的连续整数。
+其它形式不影响域的计数。
+下面是一个例子：
+
+\lstset{language=C}
+\begin{lstlisting}
+	a = { [f(1)] = g; "x", "y";
+		x = 1, f(x), [30] = 23; 45 }
+\end{lstlisting}
+
+它等价于：
+
+\lstset{language=C}
+\begin{lstlisting}
+	do
+		local t = {}
+		t[f(1)] = g
+		t[1] = "x"         -- 1st exp
+		t[2] = "y"         -- 2nd exp
+		t.x = 1            -- t["x"] = 1
+		t[3] = f(x)        -- 3rd exp
+		t[30] = 23
+		t[4] = 45          -- 4th exp
+		a = t
+	end
+\end{lstlisting}
+
+表构造器赋值的顺序是不确定的\footnote{当\emph{key}重复时，顺序才有
+一定规律。}。
+
+如果列表域的最后一个表达式是一个函数或可变参数表达式，
+它们返回的所有值会被加入表中（章节3.4.10）。
+
+为了方便生成代码，域列表的尾部有一个可选的分割符。
+
+\subsubsection{函数调用}
+
+\textbf{Lua}的函数调用语法如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	functioncall ::= prefixexp args
+\end{lstlisting}
+
+首先\emph{prefixexp}和\emph{args}被计算。如果
+\emph{prefixexp}的值类型为\emph{function}。
+就会将\emph{args}的计算结果作为参数调用\emph{prefixexp}所
+指向的函数。如果\emph{prefixexp}的值类型不为\emph{function}的话，
+\emph{prefixexp}的值和\emph{args}就会作为参数传给
+\emph{prefixexp}的\emph{call}元方法（章节2.4）。
+
+调用方法的形式为：
+
+\lstset{language=C}
+\begin{lstlisting}
+	functioncall ::= prefixexp ‘:’ Name args
+\end{lstlisting}
+
+\emph{v:name(args)}等价于\emph{v.name(v,args)}，除了\emph{v}
+只被计算了一次。
+
+参数的语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	args ::= ‘(’ [explist] ‘)’
+	args ::= tableconstructor
+	args ::= LiteralString
+\end{lstlisting}
+
+所有参数表达式在函数调用之前被计算。
+\emph{f\{fields\}}的调用形式等价于\emph{f(\{fields\})}。
+参数列表实际上是一个\emph{table}。
+\emph{f'string'}和\emph{f"string"}等价于\emph{f('string'}，
+也就是说，这时的参数表是一个字符串字面量。
+
+在\emph{return}语句中调用函数被称为\textbf{尾调用}。
+\textbf{Lau}对尾调用有优化。
+尾调用会复用使用尾调用的函数的栈空间。
+因此，尾调用可以无限递归而不会溢栈。
+但是，尾调用覆盖了函数调用信息，这样就给调试带来了困难。
+触发\textbf{Lua}对尾调用的优化，需要使用特定的语法。
+只有\emph{return}语句只有一个函数调用作为参数才能出发。
+下面的代码都不能出发尾调用：
+
+\lstset{language=C}
+\begin{lstlisting}
+	return (f(x)) -- results adjusted to 1
+	return 2 * f(x)
+	return x, f(x) -- additional results
+	f(x); return -- results discarded
+	return x or f(x) -- results adjusted to 1
+\end{lstlisting}
+
+\subsubsection{函数定义}
+
+函数定义的语法形式如下：
+
+\lstset{language=C}
+\begin{lstlisting}
+	functiondef ::= function funcbody
+	funcbody ::= ‘(’ [parlist] ‘)’ block end
+\end{lstlisting}
+
+下面是函数定义的简化语法形式：
+
+\lstset{language=C}
+\begin{lstlisting}
+	stat ::= function funcname funcbody
+	stat ::= local function Name funcbody
+	funcname ::= Name {‘.’ Name} [‘:’ Name]
+\end{lstlisting}
+
+语句
+\emph{function f() body end}等价于\emph{f=function() body end}
+
+\emph{function t.a.b.c.f() body end}被解释为
+\emph{t.a.b.c.f=function() body end}
+
+\emph{local function f() body end}被解释为
+\emph{local f;f=function() body end}
+
+而不是\emph{local f=function() body end}
+\footnote{当函数体需要使用\emph{f}的引用时，就需要注意特别注意。}
+
+函数定义是一个可以运行的值类型为\emph{function}的表达式。
+\textbf{Lua}编译程序块时同时也把其中所有的函数体编译了。
+之后，当\textbf{Lua}执行函数定义时，就会实例化一个\emph{function}
+对象做为表达式的值。
+
+函数变元被作为局部变量使用函数参数进行初始化。
+
+\lstset{language=C}
+\begin{lstlisting}
+	parlist ::= namelist [‘,’ ‘...’] | ‘...’
+\end{lstlisting}
+
+考虑下面的函数定义：
+
+\lstset{language=C}
+\begin{lstlisting}
+	function f(a, b) end
+	function g(a, b, ...) end
+	function r() return 1,2,3 end
+\end{lstlisting}
+
+下面给出不同的调用下，变元接受参数的结果：
+
+\lstset{language=C}
+\begin{lstlisting}
+	CALL            PARAMETERS
+	     
+	f(3)             a=3, b=nil
+	f(3, 4)          a=3, b=4
+	f(3, 4, 5)       a=3, b=4
+	f(r(), 10)       a=1, b=10
+	f(r())           a=1, b=2
+	     
+	g(3)             a=3, b=nil, ... -->  (nothing)
+	g(3, 4)          a=3, b=4,   ... -->  (nothing)
+	g(3, 4, 5, 8)    a=3, b=4,   ... -->  5  8
+	g(5, r())        a=5, b=1,   ... -->  2  3
+\end{lstlisting}
+
+函数结果可以使用\emph{return}语句返回（章节3.3.4）。
+如果没有\emph{return}，函数不返回结果。
+
+函数可以返回的值的数量受到系统限制。
+这个限制值保证大于1000。
+
+分号被用来定义方法。这样定义的函数含有一个隐含的\emph{self}参数。
+
+\lstset{language=C}
+\begin{lstlisting}
+	function t.a.b.c:f (params) body end
+	等价于
+	t.a.b.c.f = function (self, params) body end
+\end{lstlisting}
+
+\subsection{可见性}
+
+\textbf{Lua}是词法作用域语言。
+一个局部变量的作用域开始于它的定义之后，结束于
+
+\lstset{language=C}
+\begin{lstlisting}
+	x = 10-- global variable
+	do-- new block
+		local x = x-- new 'x', with value 10
+		print(x)--> 10
+		x = x+1
+		do-- another block
+			local x = x+1-- another 'x'
+			print(x)--> 12
+		end
+		print(x)--> 11
+	end
+	print(x)--> 10  (the global one)
+\end{lstlisting}
+
+注意观察\emph{local x=x}，新定义的局部变量\emph{x}
+的作用域还有开始，所以等号右边的\emph{x}是外部的变量。
+
+因为使用词法作用域，局部变量可以自由地被定义在作用域中的函数访问。
+一个被内部函数使用的在外部定义的局部变量叫做\emph{upvalue}或者
+\textbf{外部局部变量}。
+
+\textbf{局部}语句的每次执行都会定义新的局部变量。考虑以下代码：
+
+\lstset{language=C}
+\begin{lstlisting}
+	a = {}
+	local x = 20
+	for i=1,10 do
+	local y = 0
+		a[i] = function () y=y+1; return x+y end
+	end
+\end{lstlisting}
+
+这段代码创建了10个闭包\footnote{十个匿名函数的实例。}。
+每个闭包都使用了一个不同的\emph{y}变量，但是都共用一个\emph{x}变量。
+
+\section{应用程序接口}
+
+\subsection{栈}
+
+\subsection{栈大小}
+
+\subsection{Valid and Acceptable Indices}
+
+\subsection{C闭包}
+
+\subsection{注册表}
+
+\subsection{Error Handling in C}
+
+\subsection{Handling Yields in C}
+
+\subsection{函数和类型}
+
+\subsection{调试接口}
+
+\section{辅助库}
+
+\subsection{函数和类型}
+
+\section{标准库}
+
+\subsection{基础函数}
+
+\subsection{协程处理}
+
+\subsection{模块}
+
+\subsection{字符串处理}
+
+\subsubsection{模式}
+
+\subsubsection{Format Strings for Pack and Unpack}
+
+\subsection{UTF-8支持}
+
+\subsection{表处理}
+
+\subsection{数学函数}
+
+\subsection{Input and Output Facilities}
+
+\subsection{Operating System Facilities}
+
+\subsection{调试库}
+
+\section{Lua Standalone}
+
+\section{向前兼容}
+
+\subsection{语言变化}
+
+\subsection{库变化}
+
+\subsection{API变化}
+
+\section{Lua完整语法定义}
+
+
+\end{document}
+
