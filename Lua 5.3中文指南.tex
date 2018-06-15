@@ -11,7 +11,9 @@
 
 \textbf{Lua}是一个强大、高效、轻量的嵌入式脚本语言。它不仅支持过程化、面向对象、函数式和数据驱动的编程方式，还拥有强大的数据描述能力。
 
-\textbf{Lua}不仅语法简单，还拥有基于\textbf{关联数组}和\textbf{可扩展语义}的强大数据描述能力。\textbf{Lua}是动态类型的，它对代码的执行
+\textbf{Lua}不仅语法简单，
+还拥有基于\textbf{关联数组}和\textbf{可扩展语义}的强大数据描述能力
+。\textbf{Lua}是动态类型的，它对代码的执行
 是依靠一个基于寄存器的虚拟机执行编译器生成的字节码来完成的。
 它还拥有增量内存垃圾自动回收的能力。这些能力使\textbf{Lua}成为
 \textbf{配置文件}、\textbf{脚本语言}和\textbf{快速原型开发}的
@@ -1430,22 +1432,184 @@ $a>b$等价于$b<a\ and\ a>=b$等价于$b<=a$。
 用来和\textbf{Lua}进行交互的\textbf{C语言}函数。
 所有API函数和相关的类型，常量的定义可以在\emph{lua.h}找到。
 
+尽管我们使用\textbf{函数}这个术语，但实际上有一部分API是使用
+\textbf{宏}的形式提供的。除非特别指明，这些宏只使用它们的参数一次
+\footnote{除了第一个参数\emph{Lua State}}，所以它们不会产生
+隐藏的副作用。
+
+就像大多数\textbf{C库}一样，\textbf{Lua}的API函数不对它的参数做
+合法性和一致性检查。当然，我们可以通过使用\emph{LUA\_USE\_APICHECK}
+编译\textbf{Lua}来使它进行这个检查。
+
+\textbf{Lua}库不维护全局信息，它通过\emph{Lua state}参数来获取状态。
+
+每个\emph{Lua State}可以拥有一个或多个独立，并行的线程。
+\emph{Lua State}引用了一个线程
+\footnote{线程也引用了一个和它绑定的\emph{Lua State}。}。
+
+除了\emph{lua\_newstate}函数外，线程指针必须被作为地一个参数
+传递给库中的函数。\emph{lua\_newstate}函数返回一个新的状态指针。
 
 \subsection{栈}
 
+\textbf{Lua}通过使用一个\textbf{虚拟栈}从\textbf{C语言}传递信息。
+栈中的每个元素代表一个\textbf{Lua值}\footnote{\textbf{nil}，
+\textbf{number}，\textbf{string}等等。}。
+API函数可以通过\emph{Lua State}参数访问这个栈。
+
+\textbf{Lua}调用\textbf{C函数}后，被调用的\textbf{C函数}会获得
+一个独立于原来的栈的新的栈。这个栈包含了\textbf{C函数}的所有参数，
+并且它可以被\textbf{C函数}用来存放临时的\textbf{Lua}值，以及返回
+结果给它的调用者\footnote{参考\emph{lua\_CFunction}函数。}。
+
+为了方便，大多数查询API并不严格遵循栈的规矩。
+它们可能通过索引来直接引用栈中的元素：
+一个正的索引可以用来表示元素在栈中的绝对位置\footnote{从1开始。}。
+一个负的索引用来表示从栈顶开始的相对偏移。
+更具体地说，如果一个栈中有$n$个元素，索引$1$代表第一个元素
+\footnote{地一个被压入栈中的元素。},索引$n$代表最后一个元素。
+索引$-1$代表最后一个元素\footnote{也就是栈顶元素}。
+索引$-n$代表第一个元素。
+
 \subsection{栈大小}
 
-\subsection{Valid and Acceptable Indices}
+当我们使用这API时，需要自己保证数据的一致性。
+特别的，我们需要自己保证栈没有溢出。
+我们可以使用\emph{lua\_checkstack}函数保证栈有足够的空间
+压入新元素。
+
+从\textbf{Lua}中调用\textbf{C}，能够保证栈中至少有\emph{LUA\_MINSTACK}个多余的槽。
+\emph{LUA\_MINSTACK}被定义为$20$，通常只要我们没有循环压入元素到栈中，是不要担心栈
+空间的问题。
+
+当一个\textbf{Lua}函数没有固定的结果个数时\footnote{参考\emph{lua\_call}函数}，
+\textbf{Lua}保证有足够的栈空间存放这些结果，但它不保证有多余的空间。
+因此，在这样的一个函数调用后压入元素应该使用\emph{lua\_checkstack}函数。
+
+\subsection{有效和可接受的索引}
+
+\textbf{API函数}只接受有效或可接受的栈索引。
+
+有效索引是指引用了一个存储了可以被修改的\textbf{Lua}值的位置。
+它的范围是$1$到栈顶加上伪索引\footnote{用来表示可以被\textbf{C语言}
+代码访问到，但不在栈中的位置。}。伪索引被用来访问注册表(章节4.5)和
+\textbf{C函数}的上值(章节4.4)。
+
 
 \subsection{C闭包}
 
+\textbf{C}函数创建时可以把一些值和它关联在一起创建\textbf{C闭包}
+\footnote(参考\emph{lua\_pushcclosure}函数。)。
+这些值被称为上值，可以在函数调用后被访问到。
+
+\textbf{C}函数被调用后，它的上值被存放在特定的伪索引。
+这些伪索引是通过\emph{lua\_upvalueindex}宏产生的。
+第一个和函数关联的上值在索引\emph{lua\_upvalueindex(1)}，以此类推。
+调用\emph{lua\_upvalueindex(n)}，如果$n$大于当前函数的上值
+\footnote{但不大于$256$。$256$是一个闭包上值个数的最值+1。}，
+它就会产生一个可接受但无效的索引。
+
 \subsection{注册表}
 
-\subsection{Error Handling in C}
+\textbf{Lua}提供了一个\textbf{注册表}，它是一个预定义的可以被
+\textbf{C}代码使用存储\textbf{Lua}值的表。
+注册表所在的伪索引是\emph{LUA\_REGISTRYINDEX}。
+任何\textbf{C库}可以在表中存储数据，但是需要注意不要和其它库使用相同的
+\emph{key}。习惯上，我们应该使用包含库名的字符串或是一个
+带有一个C对象地址\emph{light userdata}，或是被我们的代码创建的
+\textbf{Lua}对象作为\emph{key}。和变量名一样，字符串\emph{key}
+以下划线开始后跟大写字母的名字是被\textbf{Lua}所保留的。
 
-\subsection{Handling Yields in C}
+注册表中的整型\emph{key}被引用系统和部分预定义值使用\footnote{参考
+\emph{luaL\_ref}函数。}。整型\emph{key}不能用于其它目的。
+
+当我们创建一个\textbf{Lua State}，它的注册表就会出现一些预定义的值。
+这些预定义的值可以通过定义在\emph{lua.h}中的常量索引。
+下面是被定义的常量：
+
+\begin{itemize}
+\item LUA\_RIDX\_MAINTHREAD:对应状态的主线程\footnote{主线程是指
+和状态一同创建的线程。}。
+\item LUA\_RIDX\_GLOBALS:对应全局环境。
+\end{itemize}
+
+\subsection{在C语言中进行错误处理}
+
+\textbf{Lua}在内部使用\textbf{C语言}的\emph{longjmp}来处理错误
+\footnote{如果使用\textbf{C++}编译\textbf{Lua}，那它就会使用
+异常来处理错误，具体在\textbf{Lua}源代码中搜索\emph{LUAI\_THROW}
+查看相关代码。}。当\textbf{Lua}遇到错误\footnote{比如内存分配错误
+或类型错误。}
+，就会进行\emph{long jump}。
+在被保护的环境下可以使用\emph{setjmp}来设置一个恢复点。
+任何错误都会被跳转到最近的恢复点。
+
+在\textbf{C}函数里我们可以通过调用\emph{lua\_error}函数来
+产生一个错误。
+
+大多数\textbf{API函数}都能引发错误\footnote{比如内存分配错误。}。
+本文档已经说明了每个函数是否会引发错误。
+
+如果一个错误发生在未被包或的环境，\textbf{Lua}会调用\emph{panic}
+函数
+\footnote{参考\emph{lua\_atpanic}函数。}然后中断执行，退出宿主程序。
+我们可以通过不让\emph{panic}函数返回来避免退出宿主程序
+\footnote{通过\emph{long jump}跳转到自己维护的恢复点。}。
+
+\emph{panic}函数就像它的名字所暗示的那样，是在不得已的情况下才使用的。
+我们应该避免使用它。作为一个一般规则，\textbf{Lua}以\emph{Lua State}
+为参数调用一个\textbf{C函数}，这个函数可以对\emph{Lua State}进行任何
+它想要的处理，就像它已经被保护一样。然而，\textbf{C}语言操作
+\emph{Lua State}应该使用不产生错误的API函数
+\footnote{一个\textbf{Lua}函数的参数，一个被存放在注册表中的
+\emph{Lua State}，或是\emph{lua\_newthread}的结果。}。
+
+\emph{panic}函数就像一个消息处理器(章节2.3)。
+特别的，错误对象在栈顶。栈的空间并不被保证。
+在压入元素前，\emph{panic}函数应该先检查可用的空间(章节4.2)。
+
+\subsection{在C语言中进行协程处理}
+
+\textbf{Lua}使用\emph{longjmp}来进行协程的让出。
+如果C函数$foo$调用了一个API函数
+\footnote{直接或间接调用执行让出的函数。}
+，然后这个API函数让出执行，
+\textbf{Lua}就不能在返回$foo$这个函数，因为$longjmp$已经移除了
+它的栈帧。
+
+为了避免这类问题，在一个API调用中使用让出\textbf{Lua}会产生一个错误。
+但下面三个函数不会产生这个错误：、\emph{lua\_yieldk}函数，
+\emph{lua\_callk}函数和\emph{lua\_pcallk}函数。
+这些函数接受一个\emph{continuation}函数
+\footnote{作为一个名叫$k$的参数。}，在让出后继续执行。
+
+我们需要一些术语来解释这种继续执行。我们把\textbf{Lua}代码调用的C函数
+称为\textbf{源函数}，\textbf{源函数}调用上面三个API函数之一，
+然后让出当前线程
+\footnote{这种情况在被调用的函数是\emph{lua\_yieldk}或被调用的函数是
+\emph{lua\_callk}，\emph{lua\_pcallk}。}。
+
+假设执行被调函数后让出执行。
 
 \subsection{函数和类型}
+
+在这里我们按照字母顺序列出了所有\textbf{C API}中的\textbf{函数}和
+\textbf{类型}。
+每个函数有一个标记，形式如下：
+
+第一个域，$o$，代表函数从栈中弹出多少个元素。
+第二个域，$p$，代表函数压入栈中多少个元素
+\footnote{函数总是在弹出它的参数后将结果压入栈中。}。
+一个形式为$x|y$的域意味着函数可以根据情况压入或弹出$x$或$y$元素。
+一个$?$标记意味着我们不能从它的参数看出函数弹出压入的元素个数
+\footnote{可能需要根据栈的内容而定。}。
+第三个域，$x$指明函数是否会引起错误：$-$意味着函数不会引起任何错误。
+$m$意味着函数可能引起内存耗尽错误，并且这个错误会引起\emph{\_\_gc}
+元方法的执行。$e$意味着这个函数可能会引起任意的错误
+\footnote{它可以直接执行任意的\textbf{Lua}代码或间接通过
+元方法执行。}。
+$v$意味着函数可能故意产生一个错误。
+
 
 \subsection{调试接口}
 
